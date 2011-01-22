@@ -22,7 +22,7 @@ data PointedList a = PointedList
   { reversedPrefix :: [a]
   , _focus         :: a
   , suffix         :: [a]
-  } deriving ({-! Binary !-})
+  } deriving (Eq)
 
 $(mkLabels [''PointedList])
 
@@ -169,15 +169,21 @@ withFocus (PointedList a b c) =
 -- | Move the focus to the specified index. 
 -- The first element is at index 0
 moveTo :: Int -> PointedList a -> Maybe (PointedList a)
-moveTo n pl = moveN (n - (index pl)) pl
-
+moveTo n pl = moveN (n - (index pl)) pl 
 
 -- | Move the focus by @n@, relative to the current index. Negative values move
 --   the focus backwards, positive values more forwards through the list.
 moveN :: Int -> PointedList a -> Maybe (PointedList a)
-moveN 0 pl = Just pl
-moveN n pl | n < 0 = maybe Nothing (moveN (n+1)) $ previous pl
-           | n > 0 = maybe Nothing (moveN (n-1)) $ next pl
+moveN n pl@(PointedList left x right) = go n left x right 
+  where
+  go n left x right = case compare n 0 of
+   GT -> case right of
+     [] -> Nothing
+     (r:rs) -> go (n-1) (x:left) r rs
+   LT -> case left of
+     [] -> Nothing
+     (l:ls) -> go (n+1) ls l (x:right)
+   EQ -> Just $ PointedList left x right
 
 -- | Move the focus to the specified element, if it is present.
 --
@@ -192,14 +198,7 @@ find x pl = find' ((x ==) . (getL focus)) $ positions pl
         merge []     ys = ys
         merge (x:xs) ys = x : merge ys xs
 
--- | The index of the focus.
+-- | The index of the focus, leftmost is 0.
 index :: PointedList a -> Int
 index (PointedList a _ _) = Prelude.length a
 
--- GENERATED START
-
- 
-instance (Eq a) => Eq (PointedList a) where
-        PointedList x1 x2 x3 == PointedList y1 y2 y3
-          = x1 == y1 && x2 == y2 && x3 == y3
--- GENERATED STOP
