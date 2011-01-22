@@ -8,7 +8,8 @@ import Prelude hiding (foldl, foldr, elem)
 
 import Control.Applicative
 import Control.Monad
-import Data.Binary ()
+import Data.Binary
+import Data.DeriveTH
 import Data.Foldable hiding (find)
 import Data.List hiding (length, foldl, foldr, find, elem)
 import qualified Data.List as List
@@ -24,6 +25,7 @@ data PointedList a = PointedList
   , suffix         :: [a]
   } deriving (Eq)
 
+$(derive makeBinary ''PointedList)
 $(mkLabels [''PointedList])
 
 instance (Show a) => Show (PointedList a) where
@@ -166,8 +168,7 @@ withFocus :: PointedList a -> PointedList (a, Bool)
 withFocus (PointedList a b c) =
     PointedList (zip a (repeat False)) (b, True) (zip c (repeat False))
 
--- | Move the focus to the specified index. 
--- The first element is at index 0
+-- | Move the focus to the specified index. The first element is at index 0.
 moveTo :: Int -> PointedList a -> Maybe (PointedList a)
 moveTo n pl = moveN (n - (index pl)) pl 
 
@@ -201,4 +202,3 @@ find x pl = find' ((x ==) . (getL focus)) $ positions pl
 -- | The index of the focus, leftmost is 0.
 index :: PointedList a -> Int
 index (PointedList a _ _) = Prelude.length a
-
