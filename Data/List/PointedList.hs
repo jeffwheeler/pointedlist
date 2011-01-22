@@ -26,9 +26,6 @@ data PointedList a = PointedList
 
 $(mkLabels [''PointedList])
 
--- | Focus element accessor label.
-focus :: PointedList a :-> a
-
 instance (Show a) => Show (PointedList a) where
  show (PointedList ls x rs) = show (reverse ls) ++ " " ++ show x ++ " " ++ show rs
 
@@ -67,7 +64,7 @@ fromListEnd xs = Just $ PointedList xs' x []
 
 -- | Replace the focus of the list, retaining the prefix and suffix.
 replace :: a -> PointedList a -> PointedList a
-replace = set focus
+replace = setL focus
 
 -- | Possibly move the focus to the next element in the list.
 next :: PointedList a -> Maybe (PointedList a)
@@ -170,14 +167,10 @@ withFocus (PointedList a b c) =
     PointedList (zip a (repeat False)) (b, True) (zip c (repeat False))
 
 -- | Move the focus to the specified index. 
+-- The first element is at index 0
 moveTo :: Int -> PointedList a -> Maybe (PointedList a)
-moveTo n pl@(PointedList a _ _)
-    | n < 0     = Nothing
-    | atEnd pl  = Nothing
-    | i == n    = Just pl
-    | i >  n    = moveTo n $ tryPrevious pl
-    | otherwise = moveTo n $ tryNext pl
-  where i = index pl -- Cache length of the prefix
+moveTo n pl = moveN (n - (index pl)) pl
+
 
 -- | Move the focus by @n@, relative to the current index. Negative values move
 --   the focus backwards, positive values more forwards through the list.
@@ -192,7 +185,7 @@ moveN n pl | n < 0 = maybe Nothing (moveN (n+1)) $ previous pl
 --   0.3.2. Improved again by Runar Bjarnason for version 0.3.3 to support
 --   infinite lists on both sides of the focus.
 find :: Eq a => a -> PointedList a -> Maybe (PointedList a)
-find x pl = find' ((x ==) . (get focus)) $ positions pl
+find x pl = find' ((x ==) . (getL focus)) $ positions pl
   where find' pred (PointedList a b c) =
           if pred b then Just b
                     else List.find pred (merge a c)
