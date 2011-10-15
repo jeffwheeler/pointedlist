@@ -14,7 +14,7 @@ import Data.Foldable hiding (find)
 import Data.List hiding (length, foldl, foldr, find, elem)
 import qualified Data.List as List
 import Data.Maybe
-import Data.Record.Label
+import qualified Data.Label as Label
 import Data.Traversable
 
 -- | The implementation of the pointed list structure which tracks the current
@@ -26,7 +26,7 @@ data PointedList a = PointedList
   } deriving (Eq)
 
 $(derive makeBinary ''PointedList)
-$(mkLabels [''PointedList])
+$(Label.mkLabels [''PointedList])
 
 instance (Show a) => Show (PointedList a) where
  show (PointedList ls x rs) = show (reverse ls) ++ " " ++ show x ++ " " ++ show rs
@@ -66,7 +66,7 @@ fromListEnd xs = Just $ PointedList xs' x []
 
 -- | Replace the focus of the list, retaining the prefix and suffix.
 replace :: a -> PointedList a -> PointedList a
-replace = setL focus
+replace = Label.set focus
 
 -- | Possibly move the focus to the next element in the list.
 next :: PointedList a -> Maybe (PointedList a)
@@ -192,7 +192,7 @@ moveN n pl@(PointedList left x right) = go n left x right
 --   0.3.2. Improved again by Runar Bjarnason for version 0.3.3 to support
 --   infinite lists on both sides of the focus.
 find :: Eq a => a -> PointedList a -> Maybe (PointedList a)
-find x pl = find' ((x ==) . (getL focus)) $ positions pl
+find x pl = find' ((x ==) . (Label.get focus)) $ positions pl
   where find' pred (PointedList a b c) =
           if pred b then Just b
                     else List.find pred (merge a c)
