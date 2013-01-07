@@ -8,25 +8,41 @@ import Prelude hiding (foldl, foldr, elem)
 
 import Control.Applicative
 import Control.Monad
+-- import Control.Lens (set)
 import Data.Binary
 import Data.DeriveTH
 import Data.Foldable hiding (find)
 import Data.List hiding (length, foldl, foldr, find, elem)
 import qualified Data.List as List
 import Data.Maybe
-import qualified Data.Label as Label
 import Data.Traversable
 
 -- | The implementation of the pointed list structure which tracks the current
 --   position in the list structure.
 data PointedList a = PointedList
-  { reversedPrefix :: [a]
-  , _focus         :: a
-  , suffix         :: [a]
+  { _reversedPrefix :: [a]
+  , _focus          :: a
+  , _suffix         :: [a]
   } deriving (Eq)
 
 $(derive makeBinary ''PointedList)
-$(Label.mkLabels [''PointedList])
+
+-- | Lens compatible with Control.Lens.
+reversedPrefix :: Functor f => ([a] -> f [a]) -> PointedList a -> f (PointedList a)
+reversedPrefix f (PointedList ls x rs) = (\ls' -> PointedList ls' x rs) <$> f ls
+
+-- | Lens compatible with Control.Lens.
+focus :: Functor f => (a -> f a) -> PointedList a -> f (PointedList a)
+focus f (PointedList ls x rs) = (\x' -> PointedList ls x' rs) <$> f x
+
+-- | Lens compatible with Control.Lens.
+suffix :: Functor f => ([a] -> f [a]) -> PointedList a -> f (PointedList a)
+suffix f (PointedList ls x rs) = (\rs' -> PointedList ls x rs') <$> f rs
+
+-- | Lens compatible with Control.Lens.
+-- Internally reversing the prefix list.
+prefix :: Functor f => ([a] -> f [a]) -> PointedList a -> f (PointedList a)
+prefix f (PointedList ls x rs) = (\ls' -> PointedList (reverse ls') x rs) <$> f (reverse ls)
 
 instance (Show a) => Show (PointedList a) where
  show (PointedList ls x rs) = show (reverse ls) ++ " " ++ show x ++ " " ++ show rs
@@ -66,7 +82,8 @@ fromListEnd xs = Just $ PointedList xs' x []
 
 -- | Replace the focus of the list, retaining the prefix and suffix.
 replace :: a -> PointedList a -> PointedList a
-replace = Label.set focus
+replace x (PointedList ls _ rs) = PointedList ls x rs
+-- replace = set focus
 
 -- | Possibly move the focus to the next element in the list.
 next :: PointedList a -> Maybe (PointedList a)
@@ -192,7 +209,7 @@ moveN n pl@(PointedList left x right) = go n left x right
 --   0.3.2. Improved again by Runar Bjarnason for version 0.3.3 to support
 --   infinite lists on both sides of the focus.
 find :: Eq a => a -> PointedList a -> Maybe (PointedList a)
-find x pl = find' ((x ==) . (Label.get focus)) $ positions pl
+find x pl = find' ((x ==) . _focus) $ positions pl
   where find' pred (PointedList a b c) =
           if pred b then Just b
                     else List.find pred (merge a c)
