@@ -8,7 +8,7 @@ import Prelude hiding (foldl, foldr, elem)
 
 import Control.Applicative
 import Control.Monad
--- import Control.Lens (set)
+import Control.Comonad
 import Data.Binary
 import Data.DeriveTH
 import Data.Foldable hiding (find)
@@ -56,6 +56,10 @@ instance Foldable PointedList where
 instance Traversable PointedList where
  traverse f (PointedList ls x rs) = PointedList <$>
     (reverse <$> traverse f (reverse ls)) <*> f x <*> traverse f rs
+
+instance Comonad PointedList where
+  extract (PointedList _ p _) = p
+  duplicate = positions
 
 -- | Create a 'PointedList' with a single element.
 singleton :: a -> PointedList a
@@ -105,7 +109,7 @@ previous p = (Just . tryPrevious) p
 --   no more elements.
 tryPrevious :: PointedList a -> PointedList a
 tryPrevious p@(PointedList []     _ _ ) =
-  error "cannot move to previous element" 
+  error "cannot move to previous element"
 tryPrevious   (PointedList (l:ls) x rs) = PointedList ls l (x:rs)
 
 -- | An alias for 'insertRight'.
@@ -170,7 +174,7 @@ positions p@(PointedList ls x rs) = PointedList left p right
   where left  = unfoldr (\p -> fmap (join (,)) $ previous p) p
         right = unfoldr (\p -> fmap (join (,)) $ next p) p
 
--- | Map over the 'PointedList's created via 'positions', such that @f@ is	
+-- | Map over the 'PointedList's created via 'positions', such that @f@ is
 --   called with each element of the list focused in the provided
 --   'PointedList'. An example makes this easier to understand:
 --
@@ -187,12 +191,12 @@ withFocus (PointedList a b c) =
 
 -- | Move the focus to the specified index. The first element is at index 0.
 moveTo :: Int -> PointedList a -> Maybe (PointedList a)
-moveTo n pl = moveN (n - (index pl)) pl 
+moveTo n pl = moveN (n - (index pl)) pl
 
 -- | Move the focus by @n@, relative to the current index. Negative values move
 --   the focus backwards, positive values more forwards through the list.
 moveN :: Int -> PointedList a -> Maybe (PointedList a)
-moveN n pl@(PointedList left x right) = go n left x right 
+moveN n pl@(PointedList left x right) = go n left x right
   where
   go n left x right = case compare n 0 of
    GT -> case right of
