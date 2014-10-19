@@ -25,6 +25,7 @@ Library
   Build-depends: base >= 4 && < 5
   Build-depends: binary
   Build-depends: derive
+  Build-depends: comonad
 
   Exposed-modules: Data.List.PointedList
                    Data.List.PointedList.Circular
