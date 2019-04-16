@@ -47,6 +47,10 @@ prefix f (PointedList ls x rs) = (\ls' -> PointedList (reverse ls') x rs) <$> f 
 instance (Show a) => Show (PointedList a) where
  show (PointedList ls x rs) = show (reverse ls) ++ " " ++ show x ++ " " ++ show rs
 
+-- | `fromList l <= fromList m` if and only if `l <= m`
+instance Ord a => Ord (PointedList a) where
+  compare pl ql = compare (toList pl) (toList ql)
+
 instance Functor PointedList where
  fmap f (PointedList ls x rs) = PointedList (map f ls) (f x) (map f rs)
 
